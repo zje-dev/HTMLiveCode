@@ -1,6 +1,9 @@
+var fs = require("fs");
+var Ripc = require("electron").ipcRenderer;
+
 var HTMLiveCode = function() {
 	var settings = arguments[0] || {},
-	_codeMirrorInstance = null,
+	codeMirrorInstance = null,
 	_livePreview = document.createElement("iframe"),
 	_resizeBar = document.createElement("div"),
 	_resizeArea = document.createElement("div"),
@@ -11,6 +14,12 @@ var HTMLiveCode = function() {
 	_introTooltip = document.getElementById("intro-tooltip"),
 	_menuBtnStyleBright = document.getElementById("btn-style-bright"),
 	_menuBtnStyleDark = document.getElementById("btn-style-dark"),
+	_menuBtnStyleIdea = document.getElementById("btn-style-idea"),
+	_menuBtnFileNew = document.getElementById("btn-new"),
+	_menuBtnFileOpen = document.getElementById("btn-open"),
+	_menuBtnFileSave = document.getElementById("btn-save"),
+	_menuBtnFileDic = document.getElementById("file-dic"),
+	_menuBtnFileCreate = document.getElementById("btn-create"),
 	_menuBtnFonsizeIncrease = document.getElementById("btn-fontsize-increase"),
 	_menuBtnFonsizeDecrease = document.getElementById("btn-fontsize-decrease"),
 	_menuBtnFonsizeReset = document.getElementById("btn-fontsize-reset"),
@@ -46,7 +55,7 @@ var HTMLiveCode = function() {
 	};
 
 	var _updateViews = function() {
-		var codeMirrorContent = _codeMirrorInstance.getValue(),
+		var codeMirrorContent = codeMirrorInstance.getValue(),
 		livePreview = _livePreview.contentDocument || _livePreview.contentWindow.document;
 		livePreview.open();
 
@@ -57,7 +66,7 @@ var HTMLiveCode = function() {
 			codeMirrorContent = codeMirrorContent.replace(/url\(['"]{0,}(.+?)['"]{0,}\)/g, "url('" + _imageProxyPath + "$1?" + new Date().getTime() + "')");
 			codeMirrorContent = codeMirrorContent.replace(/<img([^>]*)\ssrc=(['"])(.*?)\2(.*?)>/gi, "<img$1 src=$2" + _imageProxyPath + "$3?" + new Date().getTime() + "$2 $4>");
 		}
-		
+
 		var codeMirrorContentTrimmed = codeMirrorContent.replace(/[\r\n\t]+/gm, ""),
 		codeMirrorContentScripts = codeMirrorContentTrimmed.match(/<\s*script(?:.*)>(.*)<\/\s*script\s*>/i);
 
@@ -72,9 +81,9 @@ var HTMLiveCode = function() {
 
 		livePreview.close();
 	}
-	
+
 	var _foldFunc = CodeMirror.newFoldFunction(CodeMirror.tagRangeFinder);
-	
+
 	var _fadeOut = function(obj, duration) {
 		obj.style.opacity = 1;
 
@@ -91,7 +100,7 @@ var HTMLiveCode = function() {
 			}
 		}, 13);
 	}
-	
+
 	var _cloneObject = function(obj) {
 		if (typeof obj !== "object" || obj === null) {
 			return obj;
@@ -105,7 +114,7 @@ var HTMLiveCode = function() {
 			return objClone;
 		}
 	}
-	
+
 	var _settingsController = {
 		updateStorageSetting: function(settingKey, settingValue) {
 			_editorStorageSettings[settingKey] = settingValue;
@@ -115,10 +124,10 @@ var HTMLiveCode = function() {
 			return (settings[settingValue] !== null && typeof settings[settingValue] !== "undefined") ? settings[settingValue] : (_editorStorageSettings[settingValue] !== null && typeof _editorStorageSettings[settingValue] !== "undefined") ? _editorStorageSettings[settingValue] : _editorDefaultSettings[settingValue];
 		},
 		applySettings: function() {
-			_codeMirrorInstance.setOption("lineNumbers", _settingsController.checkStorageSetting("gutter"));
-			_codeMirrorInstance.setOption("lineWrapping", _settingsController.checkStorageSetting("wordWrap"));
-			_codeMirrorInstance.setOption("gutter", _settingsController.checkStorageSetting("gutter"));
-			_codeMirrorInstance.setOption("theme", _settingsController.checkStorageSetting("theme"));
+			codeMirrorInstance.setOption("lineNumbers", _settingsController.checkStorageSetting("gutter"));
+			codeMirrorInstance.setOption("lineWrapping", _settingsController.checkStorageSetting("wordWrap"));
+			codeMirrorInstance.setOption("gutter", _settingsController.checkStorageSetting("gutter"));
+			codeMirrorInstance.setOption("theme", _settingsController.checkStorageSetting("theme"));
 			_imageProxyPath = _settingsController.checkStorageSetting("imageProxyPath");
 			_updateViews();
 			_codeView.style.width = _settingsController.checkStorageSetting("codeViewWidth") + "px";
@@ -128,10 +137,10 @@ var HTMLiveCode = function() {
 			_resizeController.finishResizeAreas();
 			_fontsizeStylesheet.removeChild(_fontsizeStylesheet.childNodes[0])
 			_fontsizeStylesheet.appendChild(document.createTextNode(".CodeMirror{font-size:" + parseFloat(_editorStorageSettings.fontSize) + "em;}"));
-			_codeMirrorInstance.refresh();
+			codeMirrorInstance.refresh();
 		}
 	}
-	
+
 	var _resizeController = {
 		init: function() {
 			window.addEventListener("mouseup", function() {
@@ -141,11 +150,11 @@ var HTMLiveCode = function() {
 				_resizeArea.style.display = "none";
 				window.removeEventListener("mousemove", _resizeController.resizeMouseMoveHandler);
 			});
-			
+
 			window.addEventListener("mouseout", function() {
 				if (!_resizeBarMouseDown) document.body.style.cursor = "default";
 			});
-			
+
 			window.addEventListener("resize", function() {
 				_resizeController.resizeAreas();
 			});
@@ -177,7 +186,7 @@ var HTMLiveCode = function() {
 				_livePreview.style.width = (_browserWidth - 200 - _resizeBarWidth) + "px";
 			}
 
-			if (parseInt(_codeView.style.width) >= (_browserWidth - 200 - _resizeBarWidth)) { 
+			if (parseInt(_codeView.style.width) >= (_browserWidth - 200 - _resizeBarWidth)) {
 				_codeView.style.width = (_browserWidth - 200 - _resizeBarWidth) + "px";
 				_livePreview.style.width = "200px";
 			}
@@ -187,7 +196,7 @@ var HTMLiveCode = function() {
 			_resizeBar.style.left = parseFloat(_codeView.style.width) + "px";
 			_editorDefaultSettings.codeViewWidth = parseInt(window.innerWidth) / 2;
 			_editorDefaultSettings.livePreviewWidth = (parseInt(window.innerWidth) / 2) - _resizeBarWidth;
-			_codeMirrorInstance.refresh();
+			codeMirrorInstance.refresh();
 		},
 		resizeMouseMoveHandler: function(evt) {
 			var mouseDistance = parseInt(evt.pageX) - _resizeBarStartPosition;
@@ -210,7 +219,6 @@ var HTMLiveCode = function() {
 			if (!_resizeBarMouseDown) document.body.style.cursor = "default";
 		}
 	}
-	
 	var _menuController = {
 		init: function() {
 			_menuStartButton.setAttribute("id", "menu-startbutton");
@@ -235,6 +243,79 @@ var HTMLiveCode = function() {
 				_menuController.setTheme(_menuBtnStyleBright, "bright");
 			});
 
+			_menuBtnFileOpen.addEventListener("click", function () {
+				_menuController.fileEditor("open", this, function () {
+					filebrowser();
+				});
+			});
+
+			_menuBtnFileNew.addEventListener("click", function () {
+				_menuController.fileEditor("new", this, function () {
+					console.log(file_path);
+					if (document.getElementById("new-file-menu").getAttribute("style") == "display: none") {
+						document.getElementById("new-file-menu").setAttribute("style", "display: block");
+					} else {
+						document.getElementById("new-file-menu").setAttribute("style", "display: none");
+					}
+				});
+			});
+
+			_menuBtnFileCreate.addEventListener("click", function () {
+				fs.readFile("./.log2.log", "utf8", function(err2, con) {
+				fs.readFile("./.log.log", 'utf8', function(err, contents) {
+					file_path = contents + document.getElementById("file-name").value
+					+ "." +
+					document.getElementById("file-type").options[document.getElementById("file-type").selectedIndex].value;
+					fs.appendFile(
+						contents + document.getElementById("file-name").value
+						+ "." +
+						document.getElementById("file-type").options[document.getElementById("file-type").selectedIndex].value,
+						con,
+						function (err) {
+							console.log(err);
+							alert("file created");
+						}
+					);
+				})});
+			});
+
+			_menuBtnFileSave.addEventListener("click", function () {
+				_menuController.fileEditor("save", this);
+			});
+
+			_menuBtnStyleIdea.addEventListener("click", function(){
+				_menuController.setTheme(_menuBtnStyleIdea, "idea");
+			});
+
+			_menuBtnFileDic.addEventListener("click", function () {
+				_menuController.showMenuBar();
+				document.getElementById("new-file-menu").setAttribute("style", "display: block");
+				document.getElementById("dropdown-settings").style.display = "block";
+				Ripc.send("asynchronous-message", "GetFile");
+				Ripc.send("asynchronous-message", "GetSend");
+				Ripc.on('asynchronous-reply', function (event, arg) {
+					folder_path = arg;
+					_menuBtnFileDic.innerText = "Change directory";
+					_menuController.showMenuBar();
+					document.getElementById("dropdown-settings").style.display = "block";
+					document.getElementById("new-file-menu").setAttribute("style", "display: block");
+					_menuController.showMenuBar();
+					document.getElementById("dropdown-settings").style.display = "block";
+					document.getElementById("new-file-menu").setAttribute("style", "display: block");
+				});
+			});
+
+			_menuBtnFileDic.addEventListener("mouseover", function () {
+				fs.readFile("./.log.log", 'utf8', function(err, contents) {
+					if (contents != "") {
+						_menuBtnFileDic.setAttribute("title", "Selected path: "+contents);
+						_menuController.showMenuBar();
+						document.getElementById("dropdown-settings").style.display = "block";
+						document.getElementById("new-file-menu").setAttribute("style", "display: block");
+					}
+				});
+			})
+
 			_menuBtnStyleDark.addEventListener("click", function(){
 				_menuController.setTheme(_menuBtnStyleDark, "dark");
 			});
@@ -242,11 +323,11 @@ var HTMLiveCode = function() {
 			_menuBtnFonsizeIncrease.addEventListener("click", function(){
 				_menuController.changeEditorFontsize(1);
 			});
-			
+
 			_menuBtnFonsizeDecrease.addEventListener("click", function(){
 				_menuController.changeEditorFontsize(-1);
 			});
-			
+
 			_menuBtnFonsizeReset.addEventListener("click", function(){
 				_menuController.changeEditorFontsize(0);
 			});
@@ -254,15 +335,15 @@ var HTMLiveCode = function() {
 			_menuBtnOptionsGutter.addEventListener("click", function(){
 				_menuController.toggleGutter();
 			});
-			
+
 			_menuBtnOptionsWordwrap.addEventListener("click", function(){
 				_menuController.toggleWordWrap();
 			});
-			
+
 			_menuLabelImagePath.addEventListener("mouseover", function(){
 				_imagepathTooltip.style.display = "block";
 			});
-			
+
 			_menuLabelImagePath.addEventListener("mouseout", function(){
 				_imagepathTooltip.style.display = "none";
 			});
@@ -272,11 +353,11 @@ var HTMLiveCode = function() {
 				_updateViews();
 				_settingsController.updateStorageSetting("imageProxyPath", _imageProxyPath);
 			});
-			
+
 			_menuTxtImagePath.addEventListener("focus", function(){
 				_menuTxtImagePathFocus = true;
 			});
-			
+
 			_menuTxtImagePath.addEventListener("blur", function(){
 				_menuTxtImagePathFocus = false;
 			});
@@ -284,8 +365,8 @@ var HTMLiveCode = function() {
 			_menuBtnResetCode.addEventListener("click", function(){
 				if (confirm("Reset code to default template? All changes will be lost.")) {
 					localStorage.removeItem("htmlivecodeText");
-					_codeMirrorInstance.setValue(HTMLiveCodeTemplate);
-					_codeMirrorInstance.refresh();
+					codeMirrorInstance.setValue(HTMLiveCodeTemplate);
+					codeMirrorInstance.refresh();
 				}
 			});
 
@@ -296,9 +377,30 @@ var HTMLiveCode = function() {
 					_menuController.setButtonStates();
 					_menuTxtImagePath.value = _settingsController.checkStorageSetting("imageProxyPath") || "";
 					_settingsController.applySettings();
-					_codeMirrorInstance.refresh();
+					codeMirrorInstance.refresh();
 				}
 			});
+		},
+
+		fileEditor: function (value, menuBtn, fun) {
+			try {
+				var isActive = menuBtn.getAttribute("class") === "menu-button-active";
+
+				if (!isActive) {
+					menuBtn.setAttribute("class", isActive ? "menu-button" : "menu-button-active");
+					if (value == "open") {
+						_menuBtnFileSave.setAttribute("class", "menu-button");
+						_menuBtnFileNew.setAttribute("class", "menu-button");
+					} else if (value == "new") {
+						_menuBtnFileOpen.setAttribute("class", "menu-button");
+						_menuBtnFileSave.setAttribute("class", "menu-button");
+					} else if (value == "save") {
+						_menuBtnFileOpen.setAttribute("class", "menu-button");
+						_menuBtnFileNew.setAttribute("class", "menu-button");
+					}
+				}
+				fun();
+			} catch (e) {console.log(e);}
 		},
 		changeEditorFontsize: function(value) {
 			var newFontsize = (Math.round(parseFloat(_editorStorageSettings.fontSize) * 100) / 100) + (value === 1 ? 0.1 : -0.1);
@@ -307,33 +409,41 @@ var HTMLiveCode = function() {
 			_fontsizeStylesheet.removeChild(_fontsizeStylesheet.childNodes[0])
 			_fontsizeStylesheet.appendChild(document.createTextNode(".CodeMirror{font-size:" + newFontsize + "em;}"));
 			_settingsController.updateStorageSetting("fontSize", newFontsize);
-			_codeMirrorInstance.refresh();
+			codeMirrorInstance.refresh();
 		},
 		toggleGutter: function() {
 			var isActive = _menuBtnOptionsGutter.getAttribute("class") === "menu-button-active",
 			gutterSetting = isActive ? false : true;
 			_menuBtnOptionsGutter.setAttribute("class", isActive ? "menu-button" : "menu-button-active");
-			_codeMirrorInstance.setOption("lineNumbers", gutterSetting);
-			_codeMirrorInstance.setOption("gutter", gutterSetting);
+			codeMirrorInstance.setOption("lineNumbers", gutterSetting);
+			codeMirrorInstance.setOption("gutter", gutterSetting);
 			_settingsController.updateStorageSetting("gutter", gutterSetting);
 		},
 		toggleWordWrap: function() {
 			var isActive = _menuBtnOptionsWordwrap.getAttribute("class") === "menu-button-active",
 			wordwrapSetting = isActive ? false : true;
 			_menuBtnOptionsWordwrap.setAttribute("class", isActive ? "menu-button" : "menu-button-active");
-			_codeMirrorInstance.setOption("lineWrapping", wordwrapSetting);
+			codeMirrorInstance.setOption("lineWrapping", wordwrapSetting);
 			_settingsController.updateStorageSetting("wordWrap", wordwrapSetting);
 		},
 		setTheme: function(menuBtn, themeName) {
-			var isActive = menuBtn.getAttribute("class") === "menu-button-active",
-			oppositeMenuButton = (themeName == "dark" ? _menuBtnStyleBright : _menuBtnStyleDark);
+			var isActive = menuBtn.getAttribute("class") === "menu-button-active";
 
 			if (!isActive) {
 				menuBtn.setAttribute("class", isActive ? "menu-button" : "menu-button-active");
-				oppositeMenuButton.setAttribute("class", "menu-button");
+				if (themeName == "dark") {
+					_menuBtnStyleIdea.setAttribute("class", "menu-button");
+					_menuBtnStyleBright.setAttribute("class", "menu-button");
+				} else if (themeName == "bright") {
+					_menuBtnStyleIdea.setAttribute("class", "menu-button");
+					_menuBtnStyleDark.setAttribute("class", "menu-button");
+				} else if (themeName == "idea") {
+					_menuBtnStyleBright.setAttribute("class", "menu-button");
+					_menuBtnStyleDark.setAttribute("class", "menu-button");
+				}
 			}
 
-			_codeMirrorInstance.setOption("theme", themeName);
+			codeMirrorInstance.setOption("theme", themeName);
 			_settingsController.updateStorageSetting("theme", themeName);
 		},
 		setButtonStates: function() {
@@ -345,6 +455,8 @@ var HTMLiveCode = function() {
 		hideMenuBar: function() {
 			_menuBar.style.display = "none";
 			_menuStartButton.style.display = "block";
+			document.getElementById("new-file-menu").setAttribute("style", "display: none");
+			_menuBtnFileNew.setAttribute("class", "menu-button");
 		},
 		showMenuBar: function() {
 			_menuBarTimer = clearTimeout(_menuBarTimer);
@@ -358,7 +470,7 @@ var HTMLiveCode = function() {
 			if (!_menuTxtImagePathFocus) _menuBarTimer = setTimeout(_menuController.hideMenuBar, 800);
 		}
 	}
-	
+
 	try {
 		var localStorage = window.localStorage;
 	} catch(e) {
@@ -394,6 +506,7 @@ var HTMLiveCode = function() {
 				"Alt-M": function() {
 					if (_menuBar.style.display === "none" || _menuBar.style.display === "") {
 						_menuController.showMenuBar();
+
 					} else {
 						_menuController.hideMenuBar();
 					}
@@ -403,10 +516,26 @@ var HTMLiveCode = function() {
 					_menuController.setTheme(brightThemeIsActive ? _menuBtnStyleDark : _menuBtnStyleBright, brightThemeIsActive ? "dark" : "bright");
 				},
 				"Alt-W": function() { _menuController.toggleWordWrap(); },
+				"Alt-D": function() {
+					if (_menuBar.style.display === "none" || _menuBar.style.display === "") {
+						_menuController.showMenuBar();
+						document.getElementById("dropdown-settings").style.display = "block";
+						document.getElementById("new-file-menu").setAttribute("style", "display: block");
+					} else {
+						_menuController.hideMenuBar();
+						document.getElementById("dropdown-settings").style.display = "none";
+					}
+				},
+				"Alt-A": function () {
+					filebrowser();
+				},
+				"Alt-I": function () {
+					Ripc.send("asynchronous-message", "GetFile");
+				},
 				fallthrough: ["default"]
 			};
-		
-			_codeMirrorInstance = CodeMirror(document.body, {
+
+			codeMirrorInstance = CodeMirror(document.body, {
 				mode: "text/html",
 				indentWithTabs: true,
 				lineWrapping: _editorDefaultSettings.wordWrap,
@@ -422,12 +551,12 @@ var HTMLiveCode = function() {
 				onHighlightComplete: function() {
 					if (!_initialized) {
 						_initialized = true;
-						_codeView = _codeMirrorInstance.getWrapperElement();
-						
+						_codeView = codeMirrorInstance.getWrapperElement();
+
 						if (localStorage.getItem("htmlivecodeText") !== null) {
-							_codeMirrorInstance.setValue(localStorage.getItem("htmlivecodeText"));
+							codeMirrorInstance.setValue(localStorage.getItem("htmlivecodeText"));
 						} else {
-							_codeMirrorInstance.setValue(HTMLiveCodeTemplate);
+							codeMirrorInstance.setValue(HTMLiveCodeTemplate);
 						}
 
 						if (localStorage.getItem("htmlivecodeSettings") !== null) {
@@ -439,31 +568,34 @@ var HTMLiveCode = function() {
 						}
 
 						_resizeController.resizeAreas();
-						_updateViews();	
+						_updateViews();
 						_menuController.init();
 						_resizeController.init();
 					}
 				},
 				onChange: function() {
 					_updateViews();
-					localStorage.setItem("htmlivecodeText", _codeMirrorInstance.getValue());
+					localStorage.setItem("htmlivecodeText", codeMirrorInstance.getValue());
+					fs.writeFile("./.log2.log", codeMirrorInstance.getValue(), function (err) {
+						console.log(err)
+					});
 				},
 				onGutterClick: _foldFunc
 			});
 
 			_resizeBar.setAttribute("id", "resize-control");
 			document.body.appendChild(_resizeBar);
-			
+
 			_resizeArea.setAttribute("id", "resize-area");
 			document.body.appendChild(_resizeArea);
-			
+
 			_livePreview.setAttribute("id", "live-preview");
 			document.body.appendChild(_livePreview);
 
 			_fontsizeStylesheet.setAttribute("type", "text/css");
 			_fontsizeStylesheet.appendChild(document.createTextNode(".CodeMirror{font-size:"+ _editorDefaultSettings.fontSize +"em;}"));
 			document.body.appendChild(_fontsizeStylesheet);
-			
+
 			if (localStorage.getItem("htmlivecodeText") === null) {
 				_introTooltip.style.left = ((_browserWidth / 2) - 235) + "px";
 				_introTooltip.style.display = "inline";

@@ -1,0 +1,37 @@
+<html>
+ <head>
+ <link href="FileStyle.css" rel="stylesheet"/>
+ <script src="FileEdit.js"></script>
+ <script src="../lib/dom-chef.js"></script>
+ <meta charset="utf-8">
+ <title>file browser</title>
+ <script>
+ window.onresize = function () {
+  setInterval(function () {
+  window.resizeTo(700, 500);
+  }, 10);
+ }
+ </script>
+ </head>
+ <body id="bod" value="/">
+ <header><pre>File browser <b id="dist">distro</b></pre></header>
+ <div class="path-prev-next">
+<!--
+this part has spaces because i have a problem with Atom
+. ▲
+.▲ ▲
+-->
+ <div style="padding: 2px;margin: 0px;border: solid 2px var(--metal);border-radius: 7px;background-color: var(--metal)">
+  <input type="text" id="path" value="/"/>
+  <center type="button" id="findpath" style="color: var(--metalClaro);border-radius: 0px;">
+  <img src="icons/search.png"/>
+  </center>
+  <input type="button" value="↑" id="up"/>
+ </div>
+ </div>
+ <center class="select-dir">
+ <input type="button" value="open directory" id="openFD"/>
+ </center>
+ <div id="files"></div>
+ </body>
+</html>
