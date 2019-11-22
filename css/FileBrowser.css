@@ -1,0 +1,71 @@
+.filex {
+	background-color: #adadad;
+	border-radius: 4px;
+}
+
+#FB {
+	background-color: white;
+	position: absolute;
+	z-index: 12;
+	border-radius: 15px;
+}
+
+#FB div#files {
+	overflow: auto;
+	height: 80%;
+}
+
+#FB div:not(#files) {
+	display: inline-block;
+	margin: 9px;
+	padding: 3px;
+}
+
+#FB center {
+	padding: 10px;
+	background-color: #cbcbcb;
+	box-shadow: inset 0px 0px 3px -1px black;
+}
+
+#FB center:last-child {
+	border-bottom-left-radius: 15px;
+	border-bottom-right-radius: 15px;
+}
+
+#FB center:first-child {
+	border-top-left-radius: 15px;
+	border-top-right-radius: 15px;
+}
+
+#FB center input {
+	font-weight: 500;
+	font-size: 13px;
+	padding: 6px;
+	border: solid 0px;
+	box-shadow: inset 0px 0px 3px -1px black;
+}
+
+#FB center input:last-child {
+	border-top-right-radius: 8px;
+	border-bottom-right-radius: 8px;
+}
+
+#FB center input:first-child {
+	border-top-left-radius: 8px;
+	border-bottom-left-radius: 8px;
+}
+
+#FB center:last-child input:first-child {
+	background-color: red;
+	color: white;
+	font-weight: 700;
+}
+
+#iconFil {
+	width: 10%;
+	height: 7%;
+}
+
+#Fpath {
+	width: 50%;
+}

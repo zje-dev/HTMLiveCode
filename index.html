@@ -4,6 +4,7 @@
 		<meta charset="utf-8" />
 		<title>HTMLiveCode Mutant</title>
 		<link href="css/HTMLiveCode.css" rel="stylesheet" />
+		<link href="css/FileBrowser.css" rel="stylesheet"/>
 		<link href="js/codemirror/codemirror.css" rel="stylesheet" />
 		<link href="js/codemirror/theme/bright.css" rel="stylesheet" />
 		<link href="js/codemirror/theme/dark.css" rel="stylesheet" />
@@ -22,7 +23,7 @@
 		<script src="js/template.js"></script>
 		<script type="text/javascript">
 			var file_path = "";
-			var folder_path = "";
+			var folder_path = require('os').homedir() + "/";
 			window.addEventListener("DOMContentLoaded", function() {
 				window.liveEditor = new HTMLiveCode();
 				window.liveEditor.init();

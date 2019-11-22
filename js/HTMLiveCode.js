@@ -222,6 +222,7 @@ var HTMLiveCode = function() {
 	var _menuController = {
 		init: function() {
 			_menuStartButton.setAttribute("id", "menu-startbutton");
+			_menuStartButton.appendChild(document.createElement("SPAN").appendChild(document.createTextNode("▼")));
 			_codeView.appendChild(_menuStartButton);
 
 			window.addEventListener("mousemove", function(evt){
@@ -261,7 +262,7 @@ var HTMLiveCode = function() {
 			});
 
 			_menuBtnFileCreate.addEventListener("click", function () {
-				fs.readFile("./.log2.log", "utf8", function(err2, con) {
+				fs.readFile("./.log.log", "utf8", function(err2, con) {
 				fs.readFile("./.log.log", 'utf8', function(err, contents) {
 					file_path = contents + document.getElementById("file-name").value
 					+ "." +
@@ -273,7 +274,7 @@ var HTMLiveCode = function() {
 						con,
 						function (err) {
 							console.log(err);
-							alert("file created");
+							alert("File created");
 						}
 					);
 				})});
@@ -529,7 +530,7 @@ var HTMLiveCode = function() {
 				"Alt-A": function () {
 					filebrowser();
 				},
-				"Alt-I": function () {
+				"Alt-K": function () {
 					Ripc.send("asynchronous-message", "GetFile");
 				},
 				fallthrough: ["default"]
@@ -576,7 +577,7 @@ var HTMLiveCode = function() {
 				onChange: function() {
 					_updateViews();
 					localStorage.setItem("htmlivecodeText", codeMirrorInstance.getValue());
-					fs.writeFile("./.log2.log", codeMirrorInstance.getValue(), function (err) {
+					fs.writeFile("./.log.log", codeMirrorInstance.getValue(), function (err) {
 						console.log(err)
 					});
 				},
